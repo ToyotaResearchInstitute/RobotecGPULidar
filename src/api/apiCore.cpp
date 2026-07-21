@@ -498,6 +498,31 @@ void TapeCore::tape_texture_create(const YAML::Node& yamlNode, PlaybackState& st
 	state.textures.insert(std::make_pair(yamlNode[0].as<TapeAPIObjectID>(), texture));
 }
 
+RGL_API rgl_status_t rgl_texture_create_rgb(rgl_texture_t* out_texture, const void* texels, int32_t width, int32_t height)
+{
+	auto status = rglSafeCall([&]() {
+		RGL_API_LOG("rgl_texture_create_rgb(out_texture={}, width={}, height={})", (void*) out_texture, width, height);
+		CHECK_ARG(out_texture != nullptr);
+		CHECK_ARG(texels != nullptr);
+		CHECK_ARG(width > 0);
+		CHECK_ARG(height > 0);
+		GraphRunCtx::synchronizeAll(); // Prevent races with graph threads
+		*out_texture = Texture::create(texels, width, height, TextureKind::RGB).get();
+	});
+	TAPE_HOOK(out_texture, TAPE_ARRAY(texels, (width * height * 3 * sizeof(uint8_t))), width, height);
+	return status;
+}
+
+void TapeCore::tape_texture_create_rgb(const YAML::Node& yamlNode, PlaybackState& state)
+{
+	rgl_texture_t texture = nullptr;
+
+	rgl_texture_create_rgb(&texture, state.getPtr<const void>(yamlNode[1]), yamlNode[2].as<int32_t>(),
+	                       yamlNode[3].as<int32_t>());
+
+	state.textures.insert(std::make_pair(yamlNode[0].as<TapeAPIObjectID>(), texture));
+}
+
 RGL_API rgl_status_t rgl_texture_destroy(rgl_texture_t texture)
 {
 	auto status = rglSafeCall([&]() {

@@ -741,6 +741,19 @@ RGL_API rgl_status_t rgl_entity_is_alive(rgl_entity_t entity, bool* out_alive);
 RGL_API rgl_status_t rgl_texture_create(rgl_texture_t* out_texture, const void* texels, int32_t width, int32_t height);
 
 /**
+ * Creates an RGB Texture.
+ * Texture is a container object which holds device pointer to texture resource.
+ * A Texture created with this function can only be assigned via `rgl_entity_set_color_texture` -
+ * assigning it via `rgl_entity_set_intensity_texture` will fail.
+ * @param out_texture Handle to the created Texture.
+ * @param texels Pointer to the texture data: tightly packed RGB, 3 bytes per pixel. Padded to RGBA internally
+ *               (CUDA texture objects do not support 3-component fetch).
+ * @param width Width of the texture. Has to be positive.
+ * @param height Height of the texture. It is not demanded that width == height. Has to be positive.
+ */
+RGL_API rgl_status_t rgl_texture_create_rgb(rgl_texture_t* out_texture, const void* texels, int32_t width, int32_t height);
+
+/**
  * Informs that the given texture will be no longer used.
  * The texture will be destroyed after all referring Entities are destroyed.
  * @param texture Texture to be marked as no longer needed
