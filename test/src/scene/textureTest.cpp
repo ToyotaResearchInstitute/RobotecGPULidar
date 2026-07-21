@@ -168,7 +168,7 @@ TEST_P(TextureTest, rgl_texture_use_case)
 	auto textureRawData = generateCheckerboardTexture<TextureTexelFormat>(width, height);
 	mesh = makeCubeMesh();
 
-	EXPECT_RGL_SUCCESS(rgl_texture_create(&texture, textureRawData.data(), 256, 128));
+	EXPECT_RGL_SUCCESS(rgl_texture_create(&texture, textureRawData.data(), width, height));
 	EXPECT_RGL_SUCCESS(rgl_mesh_set_texture_coords(mesh, cubeUVs, 8));
 
 	EXPECT_RGL_SUCCESS(rgl_entity_create(&entity, nullptr, mesh));
@@ -257,6 +257,71 @@ TEST_P(TextureTest, rgl_color_texture_reading)
 	}
 }
 
+TEST_F(TextureTest, rgl_intensity_and_color_texture_independent_simultaneous_reading)
+{
+	// Distinct, non-trivial values for both textures so a bug that shares/overwrites state between them would be caught.
+	constexpr TextureTexelFormat intensityValue = 77;
+	constexpr uint8_t r = 12, g = 200, b = 99;
+
+	rgl_texture_t intensityTexture = nullptr;
+	rgl_texture_t colorTexture = nullptr;
+	rgl_entity_t entity = nullptr;
+	rgl_mesh_t mesh = makeCubeMesh();
+
+	auto intensityTextureRawData = generateStaticColorTexture<TextureTexelFormat>(4, 4, intensityValue);
+	auto colorTextureRawData = generateStaticColorTextureRGB(4, 4, r, g, b);
+
+	EXPECT_RGL_SUCCESS(rgl_texture_create(&intensityTexture, intensityTextureRawData.data(), 4, 4));
+	EXPECT_RGL_SUCCESS(rgl_texture_create_rgb(&colorTexture, colorTextureRawData.data(), 4, 4));
+	EXPECT_RGL_SUCCESS(rgl_mesh_set_texture_coords(mesh, cubeUVs, ARRAY_SIZE(cubeUVs)));
+
+	EXPECT_RGL_SUCCESS(rgl_entity_create(&entity, nullptr, mesh));
+	EXPECT_RGL_SUCCESS(rgl_entity_set_intensity_texture(entity, intensityTexture));
+	EXPECT_RGL_SUCCESS(rgl_entity_set_color_texture(entity, colorTexture));
+
+	// Create RGL graph pipeline.
+	rgl_node_t useRaysNode = nullptr, raytraceNode = nullptr, compactNode = nullptr, yieldNode = nullptr;
+
+	std::vector<rgl_mat3x4f> rays = {// Ray must be incident perpendicular to the surface to receive all intensity
+	                                 Mat3x4f::TRS({0, 0, 0}, {0, 0, 0}).toRGL()};
+
+	std::vector<rgl_field_t> yieldFields = {INTENSITY_F32, RGBA_U8};
+
+	EXPECT_RGL_SUCCESS(rgl_node_rays_from_mat3x4f(&useRaysNode, rays.data(), rays.size()));
+	EXPECT_RGL_SUCCESS(rgl_node_raytrace(&raytraceNode, nullptr));
+	EXPECT_RGL_SUCCESS(rgl_node_points_compact_by_field(&compactNode, RGL_FIELD_IS_HIT_I32));
+	EXPECT_RGL_SUCCESS(rgl_node_points_yield(&yieldNode, yieldFields.data(), yieldFields.size()));
+
+	EXPECT_RGL_SUCCESS(rgl_graph_node_add_child(useRaysNode, raytraceNode));
+	EXPECT_RGL_SUCCESS(rgl_graph_node_add_child(raytraceNode, compactNode));
+	EXPECT_RGL_SUCCESS(rgl_graph_node_add_child(compactNode, yieldNode));
+
+	EXPECT_RGL_SUCCESS(rgl_graph_run(raytraceNode));
+
+	int32_t outIntensityCount, outIntensitySizeOf;
+	EXPECT_RGL_SUCCESS(rgl_graph_get_result_size(yieldNode, INTENSITY_F32, &outIntensityCount, &outIntensitySizeOf));
+	EXPECT_EQ(outIntensitySizeOf, getFieldSize(INTENSITY_F32));
+
+	std::vector<::Field<INTENSITY_F32>::type> outIntensity(outIntensityCount);
+	EXPECT_RGL_SUCCESS(rgl_graph_get_result_data(yieldNode, INTENSITY_F32, outIntensity.data()));
+
+	int32_t outColorCount, outColorSizeOf;
+	EXPECT_RGL_SUCCESS(rgl_graph_get_result_size(yieldNode, RGBA_U8, &outColorCount, &outColorSizeOf));
+	EXPECT_EQ(outColorSizeOf, getFieldSize(RGBA_U8));
+
+	std::vector<RGBA8> outColor(outColorCount);
+	EXPECT_RGL_SUCCESS(rgl_graph_get_result_data(yieldNode, RGBA_U8, outColor.data()));
+
+	ASSERT_EQ(outIntensityCount, outColorCount);
+	for (int i = 0; i < outIntensityCount; ++i) {
+		EXPECT_NEAR(((float) intensityValue), outIntensity.at(i), EPSILON_F);
+		EXPECT_EQ(outColor.at(i).r, r);
+		EXPECT_EQ(outColor.at(i).g, g);
+		EXPECT_EQ(outColor.at(i).b, b);
+		EXPECT_EQ(outColor.at(i).a, 255);
+	}
+}
+
 TEST_P(TextureTest, rgl_color_texture_use_case)
 {
 	auto [width, height, value] = GetParam();
@@ -267,7 +332,7 @@ TEST_P(TextureTest, rgl_color_texture_use_case)
 	auto textureRawData = generateCheckerboardTextureRGB(width, height);
 	mesh = makeCubeMesh();
 
-	EXPECT_RGL_SUCCESS(rgl_texture_create_rgb(&texture, textureRawData.data(), 256, 128));
+	EXPECT_RGL_SUCCESS(rgl_texture_create_rgb(&texture, textureRawData.data(), width, height));
 	EXPECT_RGL_SUCCESS(rgl_mesh_set_texture_coords(mesh, cubeUVs, 8));
 
 	EXPECT_RGL_SUCCESS(rgl_entity_create(&entity, nullptr, mesh));
