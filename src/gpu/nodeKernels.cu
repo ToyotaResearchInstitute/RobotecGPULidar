@@ -149,6 +149,9 @@ __device__ void saveReturnAsHit(const RaytraceRequestContext* ctx, int beamIdx, 
 	if (ctx->incidentAngle != nullptr) {
 		ctx->incidentAngle[returnPointIdx] = ctx->mrSamples.incidentAngle[sampleIdx];
 	}
+	if (ctx->rgba != nullptr) {
+		ctx->rgba[returnPointIdx] = ctx->mrSamples.rgba[sampleIdx];
+	}
 	if (ctx->laserRetro != nullptr) {
 		ctx->laserRetro[returnPointIdx] = ctx->mrSamples.laserRetro[sampleIdx];
 	}
@@ -207,6 +210,9 @@ __device__ void saveReturnAsNonHit(const RaytraceRequestContext* ctx, int firstS
 	}
 	if (ctx->incidentAngle != nullptr) {
 		ctx->incidentAngle[returnPointIdx] = NAN;
+	}
+	if (ctx->rgba != nullptr) {
+		ctx->rgba[returnPointIdx] = Field<RGBA_U8>::type{0, 0, 0, 0};
 	}
 	if (ctx->laserRetro != nullptr) {
 		ctx->laserRetro[returnPointIdx] = 0;

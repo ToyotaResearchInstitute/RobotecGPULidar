@@ -36,7 +36,7 @@ extern "C" static __constant__ RaytraceRequestContext ctx;
 __device__ void saveSampleAsNonHit(int sampleIdx, float nonHitDistance);
 __device__ void saveSampleAsHit(int sampleIdx, float distance, float intensity, float laserRetro, int objectID,
                                 const Vec3f& absVelocity, const Vec3f& relVelocity, float radialSpeed, const Vec3f& normal,
-                                float incidentAngle);
+                                float incidentAngle, const Field<RGBA_U8>::type& rgba);
 __device__ void saveNonHitBeamSamples(int beamIdx, float nonHitDistance);
 __device__ void saveBeamSharedData(int beamIdx, const Mat3x4f& rayLocal);
 __device__ void shootSamplingRay(const Mat3x4f& ray, float maxRange, unsigned sampleBeamIdx);
@@ -172,9 +172,9 @@ extern "C" __global__ void __closesthit__()
 	const float incidentAngle = acosf(cosIncidentAngle);
 
 	float intensity = ctx.defaultIntensity;
-	// TODO(Pawel): Check if it is possible to read this only based on mode requested - if any requested
-	// return is strongest or second strongest.
-	if (entityData.textureCoords != nullptr && entityData.texture != 0) {
+	Vec2f uv{0.0f, 0.0f};
+	bool hasUV = entityData.textureCoords != nullptr;
+	if (hasUV) {
 		assert(triangleIndices.x() < entityData.textureCoordsCount);
 		assert(triangleIndices.y() < entityData.textureCoordsCount);
 		assert(triangleIndices.z() < entityData.textureCoordsCount);
@@ -183,11 +183,20 @@ extern "C" __global__ void __closesthit__()
 		const Vec2f& uvB = entityData.textureCoords[triangleIndices.y()];
 		const Vec2f& uvC = entityData.textureCoords[triangleIndices.z()];
 
-		Vec2f uv = (1 - u - v) * uvA + u * uvB + v * uvC;
-
+		uv = (1 - u - v) * uvA + u * uvB + v * uvC;
+	}
+	// TODO(Pawel): Check if it is possible to read this only based on mode requested - if any requested
+	// return is strongest or second strongest.
+	if (hasUV && entityData.texture != 0) {
 		intensity = tex2D<TextureTexelFormat>(entityData.texture, uv[0], uv[1]);
 	}
 	intensity *= cosIncidentAngle;
+
+	Field<RGBA_U8>::type rgba{0, 0, 0, 0}; // default: no color data (alpha 0)
+	if (hasUV && entityData.colorTexture != 0) {
+		uchar4 s = tex2D<uchar4>(entityData.colorTexture, uv[0], uv[1]);
+		rgba = {s.x, s.y, s.z, 255}; // alpha = validity flag (255 = sampled), NOT s.w (texture's padding alpha)
+	}
 
 	Vec3f absPointVelocity{NAN};
 	Vec3f relPointVelocity{NAN};
@@ -235,7 +244,7 @@ extern "C" __global__ void __closesthit__()
 	}
 
 	saveSampleAsHit(mrSampleIdx, distance, intensity, laserRetro, entityId, absPointVelocity, relPointVelocity, radialSpeed,
-	                wNormal, incidentAngle);
+	                wNormal, incidentAngle, rgba);
 }
 
 extern "C" __global__ void __anyhit__() {}
@@ -278,7 +287,7 @@ __device__ void saveSampleAsNonHit(int sampleIdx, float nonHitDistance)
 
 __device__ void saveSampleAsHit(int sampleIdx, float distance, float intensity, float laserRetro, int objectID,
                                 const Vec3f& absVelocity, const Vec3f& relVelocity, float radialSpeed, const Vec3f& normal,
-                                float incidentAngle)
+                                float incidentAngle, const Field<RGBA_U8>::type& rgba)
 {
 	ctx.mrSamples.isHit[sampleIdx] = true;
 	ctx.mrSamples.distance[sampleIdx] = distance;
@@ -304,6 +313,9 @@ __device__ void saveSampleAsHit(int sampleIdx, float distance, float intensity, 
 	}
 	if (ctx.mrSamples.incidentAngle != nullptr) {
 		ctx.mrSamples.incidentAngle[sampleIdx] = incidentAngle;
+	}
+	if (ctx.mrSamples.rgba != nullptr) {
+		ctx.mrSamples.rgba[sampleIdx] = rgba;
 	}
 }
 

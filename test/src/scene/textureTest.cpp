@@ -207,3 +207,164 @@ TEST_P(TextureTest, rgl_texture_use_case)
 
 #endif
 }
+
+TEST_P(TextureTest, rgl_color_texture_reading)
+{
+	auto [width, height, value] = GetParam();
+	const uint8_t r = value;
+	const uint8_t g = 255 - value;
+	const uint8_t b = value / 2;
+
+	rgl_texture_t texture = nullptr;
+	rgl_entity_t entity = nullptr;
+	rgl_mesh_t mesh = makeCubeMesh();
+	auto textureRawData = generateStaticColorTextureRGB(width, height, r, g, b);
+
+	EXPECT_RGL_SUCCESS(rgl_texture_create_rgb(&texture, textureRawData.data(), width, height));
+	EXPECT_RGL_SUCCESS(rgl_mesh_set_texture_coords(mesh, cubeUVs, ARRAY_SIZE(cubeUVs)));
+
+	EXPECT_RGL_SUCCESS(rgl_entity_create(&entity, nullptr, mesh));
+	EXPECT_RGL_SUCCESS(rgl_entity_set_color_texture(entity, texture));
+
+	rgl_node_t useRaysNode = nullptr, raytraceNode = nullptr, compactNode = nullptr, yieldNode = nullptr;
+
+	std::vector<rgl_mat3x4f> rays = {Mat3x4f::TRS({0, 0, 0}, {0, 0, 0}).toRGL()};
+	std::vector<rgl_field_t> yieldFields = {RGBA_U8};
+
+	EXPECT_RGL_SUCCESS(rgl_node_rays_from_mat3x4f(&useRaysNode, rays.data(), rays.size()));
+	EXPECT_RGL_SUCCESS(rgl_node_raytrace(&raytraceNode, nullptr));
+	EXPECT_RGL_SUCCESS(rgl_node_points_compact_by_field(&compactNode, RGL_FIELD_IS_HIT_I32));
+	EXPECT_RGL_SUCCESS(rgl_node_points_yield(&yieldNode, yieldFields.data(), yieldFields.size()));
+
+	EXPECT_RGL_SUCCESS(rgl_graph_node_add_child(useRaysNode, raytraceNode));
+	EXPECT_RGL_SUCCESS(rgl_graph_node_add_child(raytraceNode, compactNode));
+	EXPECT_RGL_SUCCESS(rgl_graph_node_add_child(compactNode, yieldNode));
+
+	EXPECT_RGL_SUCCESS(rgl_graph_run(raytraceNode));
+
+	int32_t outCount, outSizeOf;
+	EXPECT_RGL_SUCCESS(rgl_graph_get_result_size(yieldNode, RGBA_U8, &outCount, &outSizeOf));
+	EXPECT_EQ(outSizeOf, getFieldSize(RGBA_U8));
+
+	std::vector<RGBA8> outColor(outCount);
+	EXPECT_RGL_SUCCESS(rgl_graph_get_result_data(yieldNode, RGBA_U8, outColor.data()));
+
+	for (int i = 0; i < outCount; ++i) {
+		EXPECT_EQ(outColor.at(i).r, r);
+		EXPECT_EQ(outColor.at(i).g, g);
+		EXPECT_EQ(outColor.at(i).b, b);
+		EXPECT_EQ(outColor.at(i).a, 255);
+	}
+}
+
+TEST_P(TextureTest, rgl_color_texture_use_case)
+{
+	auto [width, height, value] = GetParam();
+	rgl_texture_t texture;
+	rgl_mesh_t mesh;
+	rgl_entity_t entity;
+
+	auto textureRawData = generateCheckerboardTextureRGB(width, height);
+	mesh = makeCubeMesh();
+
+	EXPECT_RGL_SUCCESS(rgl_texture_create_rgb(&texture, textureRawData.data(), 256, 128));
+	EXPECT_RGL_SUCCESS(rgl_mesh_set_texture_coords(mesh, cubeUVs, 8));
+
+	EXPECT_RGL_SUCCESS(rgl_entity_create(&entity, nullptr, mesh));
+	EXPECT_RGL_SUCCESS(rgl_entity_set_color_texture(entity, texture));
+
+	rgl_node_t useRaysNode = nullptr, raytraceNode = nullptr;
+	std::vector<rgl_mat3x4f> rays = makeLidar3dRays(360, 360, 0.36, 0.36);
+	std::vector<rgl_field_t> yieldFields = {XYZ_VEC3_F32, RGBA_U8, IS_HIT_I32};
+
+	EXPECT_RGL_SUCCESS(rgl_node_rays_from_mat3x4f(&useRaysNode, rays.data(), rays.size()));
+	EXPECT_RGL_SUCCESS(rgl_node_raytrace(&raytraceNode, nullptr));
+	EXPECT_RGL_SUCCESS(rgl_graph_node_add_child(useRaysNode, raytraceNode));
+	EXPECT_RGL_SUCCESS(rgl_graph_run(raytraceNode));
+}
+
+TEST_F(TextureTest, rgl_color_texture_no_texture_assigned_fallback)
+{
+	rgl_mesh_t mesh = makeCubeMesh();
+	rgl_entity_t entity = nullptr;
+	EXPECT_RGL_SUCCESS(rgl_mesh_set_texture_coords(mesh, cubeUVs, ARRAY_SIZE(cubeUVs)));
+	EXPECT_RGL_SUCCESS(rgl_entity_create(&entity, nullptr, mesh));
+	// Note: no rgl_entity_set_color_texture call.
+
+	rgl_node_t useRaysNode = nullptr, raytraceNode = nullptr, compactNode = nullptr, yieldNode = nullptr;
+	std::vector<rgl_mat3x4f> rays = {Mat3x4f::TRS({0, 0, 0}, {0, 0, 0}).toRGL()};
+	std::vector<rgl_field_t> yieldFields = {RGBA_U8};
+
+	EXPECT_RGL_SUCCESS(rgl_node_rays_from_mat3x4f(&useRaysNode, rays.data(), rays.size()));
+	EXPECT_RGL_SUCCESS(rgl_node_raytrace(&raytraceNode, nullptr));
+	EXPECT_RGL_SUCCESS(rgl_node_points_compact_by_field(&compactNode, RGL_FIELD_IS_HIT_I32));
+	EXPECT_RGL_SUCCESS(rgl_node_points_yield(&yieldNode, yieldFields.data(), yieldFields.size()));
+	EXPECT_RGL_SUCCESS(rgl_graph_node_add_child(useRaysNode, raytraceNode));
+	EXPECT_RGL_SUCCESS(rgl_graph_node_add_child(raytraceNode, compactNode));
+	EXPECT_RGL_SUCCESS(rgl_graph_node_add_child(compactNode, yieldNode));
+	EXPECT_RGL_SUCCESS(rgl_graph_run(raytraceNode));
+
+	int32_t outCount, outSizeOf;
+	EXPECT_RGL_SUCCESS(rgl_graph_get_result_size(yieldNode, RGBA_U8, &outCount, &outSizeOf));
+	std::vector<RGBA8> outColor(outCount);
+	EXPECT_RGL_SUCCESS(rgl_graph_get_result_data(yieldNode, RGBA_U8, outColor.data()));
+
+	ASSERT_GT(outCount, 0);
+	for (int i = 0; i < outCount; ++i) {
+		EXPECT_EQ(outColor.at(i).r, 0);
+		EXPECT_EQ(outColor.at(i).g, 0);
+		EXPECT_EQ(outColor.at(i).b, 0);
+		EXPECT_EQ(outColor.at(i).a, 0);
+	}
+}
+
+TEST_F(TextureTest, rgl_color_texture_validity_flag_mixed_entities)
+{
+	// Two separate cubes: one with a color texture, one without. One ray at each.
+	rgl_mesh_t texturedMesh = makeCubeMesh();
+	EXPECT_RGL_SUCCESS(rgl_mesh_set_texture_coords(texturedMesh, cubeUVs, ARRAY_SIZE(cubeUVs)));
+	rgl_entity_t texturedEntity = nullptr;
+	EXPECT_RGL_SUCCESS(rgl_entity_create(&texturedEntity, nullptr, texturedMesh));
+	rgl_texture_t texture = nullptr;
+	auto textureRawData = generateStaticColorTextureRGB(4, 4, 200, 100, 50);
+	EXPECT_RGL_SUCCESS(rgl_texture_create_rgb(&texture, textureRawData.data(), 4, 4));
+	EXPECT_RGL_SUCCESS(rgl_entity_set_color_texture(texturedEntity, texture));
+
+	rgl_mesh_t plainMesh = makeCubeMesh();
+	EXPECT_RGL_SUCCESS(rgl_mesh_set_texture_coords(plainMesh, cubeUVs, ARRAY_SIZE(cubeUVs)));
+	rgl_entity_t plainEntity = nullptr;
+	EXPECT_RGL_SUCCESS(rgl_entity_create(&plainEntity, nullptr, plainMesh));
+	rgl_mat3x4f plainEntityPose = Mat3x4f::TRS({10, 0, 0}).toRGL();
+	EXPECT_RGL_SUCCESS(rgl_entity_set_transform(plainEntity, &plainEntityPose));
+
+	rgl_node_t useRaysNode = nullptr, raytraceNode = nullptr, compactNode = nullptr, yieldNode = nullptr;
+	std::vector<rgl_mat3x4f> rays = {Mat3x4f::TRS({0, 0, 0}).toRGL(), Mat3x4f::TRS({10, 0, 0}).toRGL()};
+	std::vector<rgl_field_t> yieldFields = {RGBA_U8};
+
+	EXPECT_RGL_SUCCESS(rgl_node_rays_from_mat3x4f(&useRaysNode, rays.data(), rays.size()));
+	EXPECT_RGL_SUCCESS(rgl_node_raytrace(&raytraceNode, nullptr));
+	EXPECT_RGL_SUCCESS(rgl_node_points_compact_by_field(&compactNode, RGL_FIELD_IS_HIT_I32));
+	EXPECT_RGL_SUCCESS(rgl_node_points_yield(&yieldNode, yieldFields.data(), yieldFields.size()));
+	EXPECT_RGL_SUCCESS(rgl_graph_node_add_child(useRaysNode, raytraceNode));
+	EXPECT_RGL_SUCCESS(rgl_graph_node_add_child(raytraceNode, compactNode));
+	EXPECT_RGL_SUCCESS(rgl_graph_node_add_child(compactNode, yieldNode));
+	EXPECT_RGL_SUCCESS(rgl_graph_run(raytraceNode));
+
+	int32_t outCount, outSizeOf;
+	EXPECT_RGL_SUCCESS(rgl_graph_get_result_size(yieldNode, RGBA_U8, &outCount, &outSizeOf));
+	ASSERT_EQ(outCount, 2);
+	std::vector<RGBA8> outColor(outCount);
+	EXPECT_RGL_SUCCESS(rgl_graph_get_result_data(yieldNode, RGBA_U8, outColor.data()));
+
+	// First ray hits the textured cube: valid color.
+	EXPECT_EQ(outColor.at(0).a, 255);
+	EXPECT_EQ(outColor.at(0).r, 200);
+	EXPECT_EQ(outColor.at(0).g, 100);
+	EXPECT_EQ(outColor.at(0).b, 50);
+
+	// Second ray hits the untextured cube: no color data.
+	EXPECT_EQ(outColor.at(1).a, 0);
+	EXPECT_EQ(outColor.at(1).r, 0);
+	EXPECT_EQ(outColor.at(1).g, 0);
+	EXPECT_EQ(outColor.at(1).b, 0);
+}
