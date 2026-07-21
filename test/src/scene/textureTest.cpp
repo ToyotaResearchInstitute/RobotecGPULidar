@@ -38,6 +38,33 @@ TEST_F(TextureTest, rgl_texture_invalid_argument)
 	EXPECT_RGL_INVALID_ARGUMENT(rgl_texture_create(&texture, textureRawData.data(), 100, 0), "height > 0");
 }
 
+TEST_F(TextureTest, rgl_texture_create_rgb_invalid_argument)
+{
+	rgl_texture_t texture;
+	std::vector<uint8_t> textureRawData;
+
+	auto initializeArgumentsLambda = [&texture, &textureRawData]() {
+		texture = nullptr;
+		textureRawData = generateStaticColorTextureRGB(100, 100, 10, 20, 30);
+	};
+	initializeArgumentsLambda();
+	EXPECT_RGL_INVALID_ARGUMENT(rgl_texture_create_rgb(nullptr, textureRawData.data(), 100, 100), "texture != nullptr");
+	initializeArgumentsLambda();
+	EXPECT_RGL_INVALID_ARGUMENT(rgl_texture_create_rgb(&texture, nullptr, 100, 100), "texels != nullptr");
+	initializeArgumentsLambda();
+	EXPECT_RGL_INVALID_ARGUMENT(rgl_texture_create_rgb(&texture, textureRawData.data(), -1, 100), "width > 0");
+	initializeArgumentsLambda();
+	EXPECT_RGL_INVALID_ARGUMENT(rgl_texture_create_rgb(&texture, textureRawData.data(), 100, 0), "height > 0");
+}
+
+TEST_F(TextureTest, rgl_texture_create_rgb_succeeds)
+{
+	rgl_texture_t texture = nullptr;
+	auto textureRawData = generateStaticColorTextureRGB(64, 32, 10, 20, 30);
+	EXPECT_RGL_SUCCESS(rgl_texture_create_rgb(&texture, textureRawData.data(), 64, 32));
+	EXPECT_RGL_SUCCESS(rgl_texture_destroy(texture));
+}
+
 TEST_P(TextureTest, rgl_texture_reading)
 {
 	auto [width, height, value] = GetParam();

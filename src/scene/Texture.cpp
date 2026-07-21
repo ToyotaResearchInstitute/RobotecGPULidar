@@ -14,12 +14,13 @@
 
 #include <scene/Texture.hpp>
 #include <cuda_runtime.h>
+#include <vector>
 #include "RGLFields.hpp"
 
 API_OBJECT_INSTANCE(Texture);
 
-Texture::Texture(const void* texels, int width, int height)
-try : resolution(width, height) {
+Texture::Texture(const void* texels, int width, int height, TextureKind kind)
+try : resolution(width, height), kind(kind) {
 	createTextureObject(texels, width, height);
 }
 catch (...) {
@@ -31,18 +32,33 @@ void Texture::createTextureObject(const void* texels, int width, int height)
 {
 	cudaResourceDesc res_desc = {};
 
-	int32_t numComponents = 1;
+	cudaChannelFormatDesc channel_desc;
+	const void* uploadTexels = texels;
+	std::vector<uchar4> paddedRgba; // Kept alive until cudaMemcpy2DToArray below
+	int32_t pitch;
 
-	cudaChannelFormatDesc channel_desc = cudaCreateChannelDesc<TextureTexelFormat>();
-
-	int32_t pitch = width * numComponents * sizeof(TextureTexelFormat);
+	if (kind == TextureKind::GRAYSCALE) {
+		channel_desc = cudaCreateChannelDesc<TextureTexelFormat>();
+		pitch = width * static_cast<int32_t>(sizeof(TextureTexelFormat));
+	} else {
+		// RGB input is tightly packed (3 bytes/px); CUDA texture objects only support tex2D fetch
+		// types with 1, 2 or 4 components, so pad to RGBA on the host before uploading.
+		const auto* rgb = static_cast<const uint8_t*>(texels);
+		paddedRgba.resize(static_cast<size_t>(width) * static_cast<size_t>(height));
+		for (size_t i = 0; i < paddedRgba.size(); ++i) {
+			paddedRgba[i] = uchar4{rgb[i * 3 + 0], rgb[i * 3 + 1], rgb[i * 3 + 2], 255};
+		}
+		uploadTexels = paddedRgba.data();
+		channel_desc = cudaCreateChannelDesc<uchar4>();
+		pitch = width * static_cast<int32_t>(sizeof(uchar4));
+	}
 
 	// TODO prybicki
 	// Should we leave it like this, or add new copiers in DeivceBuffer.hpp?
 	// Current copyFromExternal and ensureDeviceCanFit are not working with cudaArray_t
 	CHECK_CUDA(cudaMallocArray(&dPixelArray, &channel_desc, width, height));
 
-	CHECK_CUDA(cudaMemcpy2DToArray(dPixelArray, 0, 0, texels, pitch, pitch, height, cudaMemcpyHostToDevice));
+	CHECK_CUDA(cudaMemcpy2DToArray(dPixelArray, 0, 0, uploadTexels, pitch, pitch, height, cudaMemcpyHostToDevice));
 
 	res_desc.resType = cudaResourceTypeArray;
 	res_desc.res.array.array = dPixelArray;

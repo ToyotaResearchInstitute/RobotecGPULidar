@@ -17,6 +17,12 @@
 #include <math/Vector.hpp>
 #include <rgl/api/core.h>
 
+enum class TextureKind
+{
+	GRAYSCALE, // Single-channel intensity texture (existing behavior)
+	RGB,       // 3-channel color texture, padded to RGBA internally for tex2D
+};
+
 struct Texture : APIObject<Texture>
 {
 	friend APIObject<Texture>;
@@ -31,9 +37,13 @@ struct Texture : APIObject<Texture>
 
 	cudaTextureObject_t getTextureObject() const { return dTextureObject; }
 
+	TextureKind getKind() const { return kind; }
+
 
 private:
-	Texture(const void* texels, int width, int height);
+	Texture(const void* texels, int width, int height) : Texture(texels, width, height, TextureKind::GRAYSCALE) {}
+
+	Texture(const void* texels, int width, int height, TextureKind kind);
 
 	Texture(const Texture&) = delete;            // non construction-copyable
 	Texture& operator=(const Texture&) = delete; // non copyable
@@ -43,6 +53,7 @@ private:
 	void cleanup();
 
 	Vec2i resolution{-1};
+	TextureKind kind{TextureKind::GRAYSCALE};
 
 	cudaTextureObject_t dTextureObject;
 	cudaArray_t dPixelArray;
