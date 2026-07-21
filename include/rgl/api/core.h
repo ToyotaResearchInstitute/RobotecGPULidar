@@ -451,6 +451,15 @@ typedef enum : int32_t
 	 */
 	RGL_FIELD_REFLECTIVITY_F32,
 
+	/**
+	 * Per-point color, sampled from an RGB texture assigned to the hit Entity (see `rgl_entity_set_color_texture`)
+	 * at the same UV used for intensity sampling. Unlike intensity, this is a raw sample - no incident-angle
+	 * attenuation is applied.
+	 * The alpha channel is NOT transparency. It is a validity flag: 255 if a color texture was sampled for this
+	 * point, 0 if the Entity has no color texture (or no texture coordinates), in which case r=g=b=0 too.
+	 */
+	RGL_FIELD_RGBA_U8,
+
 	// Dummy fields
 	RGL_FIELD_PADDING_8 = 1024,
 	RGL_FIELD_PADDING_16,
