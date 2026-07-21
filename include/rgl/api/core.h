@@ -695,10 +695,19 @@ RGL_API rgl_status_t rgl_entity_set_ignored_by_sensor(rgl_entity_t entity, int32
 
 /**
  * Assign intensity texture to the given Entity. The assumption is that the Entity can hold only one intensity texture.
+ * The Texture must have been created via `rgl_texture_create` - passing an RGB texture fails.
  * @param entity Entity to modify.
  * @param texture Texture to assign.
  */
 RGL_API rgl_status_t rgl_entity_set_intensity_texture(rgl_entity_t entity, rgl_texture_t texture);
+
+/**
+ * Assign color texture to the given Entity. The assumption is that the Entity can hold only one color texture.
+ * The Texture must have been created via `rgl_texture_create_rgb` - passing a grayscale texture fails.
+ * @param entity Entity to modify.
+ * @param texture Texture to assign.
+ */
+RGL_API rgl_status_t rgl_entity_set_color_texture(rgl_entity_t entity, rgl_texture_t texture);
 
 /**
  * Set laser retro value for the given Entity.

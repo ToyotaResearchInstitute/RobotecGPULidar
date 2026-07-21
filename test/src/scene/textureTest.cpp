@@ -65,6 +65,47 @@ TEST_F(TextureTest, rgl_texture_create_rgb_succeeds)
 	EXPECT_RGL_SUCCESS(rgl_texture_destroy(texture));
 }
 
+TEST_F(TextureTest, rgl_entity_set_color_texture_rejects_grayscale_texture)
+{
+	rgl_texture_t grayscaleTexture = nullptr;
+	auto grayscaleData = generateStaticColorTexture<TextureTexelFormat>(4, 4, 128);
+	EXPECT_RGL_SUCCESS(rgl_texture_create(&grayscaleTexture, grayscaleData.data(), 4, 4));
+
+	rgl_mesh_t mesh = makeCubeMesh();
+	rgl_entity_t entity = nullptr;
+	EXPECT_RGL_SUCCESS(rgl_entity_create(&entity, nullptr, mesh));
+
+	EXPECT_RGL_INVALID_ARGUMENT(rgl_entity_set_color_texture(entity, grayscaleTexture),
+	                            "color texture must be created via rgl_texture_create_rgb");
+}
+
+TEST_F(TextureTest, rgl_entity_set_intensity_texture_rejects_rgb_texture)
+{
+	rgl_texture_t rgbTexture = nullptr;
+	auto rgbData = generateStaticColorTextureRGB(4, 4, 10, 20, 30);
+	EXPECT_RGL_SUCCESS(rgl_texture_create_rgb(&rgbTexture, rgbData.data(), 4, 4));
+
+	rgl_mesh_t mesh = makeCubeMesh();
+	rgl_entity_t entity = nullptr;
+	EXPECT_RGL_SUCCESS(rgl_entity_create(&entity, nullptr, mesh));
+
+	EXPECT_RGL_INVALID_ARGUMENT(rgl_entity_set_intensity_texture(entity, rgbTexture),
+	                            "intensity texture must be created via rgl_texture_create");
+}
+
+TEST_F(TextureTest, rgl_entity_set_color_texture_accepts_rgb_texture)
+{
+	rgl_texture_t rgbTexture = nullptr;
+	auto rgbData = generateStaticColorTextureRGB(4, 4, 10, 20, 30);
+	EXPECT_RGL_SUCCESS(rgl_texture_create_rgb(&rgbTexture, rgbData.data(), 4, 4));
+
+	rgl_mesh_t mesh = makeCubeMesh();
+	rgl_entity_t entity = nullptr;
+	EXPECT_RGL_SUCCESS(rgl_entity_create(&entity, nullptr, mesh));
+
+	EXPECT_RGL_SUCCESS(rgl_entity_set_color_texture(entity, rgbTexture));
+}
+
 TEST_P(TextureTest, rgl_texture_reading)
 {
 	auto [width, height, value] = GetParam();
