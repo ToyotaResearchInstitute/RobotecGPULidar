@@ -177,6 +177,7 @@ private:
 			radialSpeed = inFieldData.contains(RADIAL_SPEED_F32) ? DeviceAsyncArray<Field<RADIAL_SPEED_F32>::type>::create(arrayMgr) : nullptr;
 			normal = inFieldData.contains(NORMAL_VEC3_F32) ? DeviceAsyncArray<Field<NORMAL_VEC3_F32>::type>::create(arrayMgr) : nullptr;
 			incidentAngle = inFieldData.contains(INCIDENT_ANGLE_F32) ? DeviceAsyncArray<Field<INCIDENT_ANGLE_F32>::type>::create(arrayMgr) : nullptr;
+			rgba = inFieldData.contains(RGBA_U8) ? DeviceAsyncArray<Field<RGBA_U8>::type>::create(arrayMgr) : nullptr;
 			// clang-format on
 		}
 
@@ -192,6 +193,7 @@ private:
 			resizeField(radialSpeed, size);
 			resizeField(normal, size);
 			resizeField(incidentAngle, size);
+			resizeField(rgba, size);
 		}
 
 		MultiReturnSamplesPointers getPointers() const
@@ -208,7 +210,8 @@ private:
 					.relVelocity = relVelocity ? relVelocity->getWritePtr() : nullptr,
 					.radialSpeed = radialSpeed ? radialSpeed->getWritePtr() : nullptr,
 					.normal = normal ? normal->getWritePtr() : nullptr,
-					.incidentAngle = incidentAngle ? incidentAngle->getWritePtr() : nullptr
+					.incidentAngle = incidentAngle ? incidentAngle->getWritePtr() : nullptr,
+					.rgba = rgba ? rgba->getWritePtr() : nullptr
 			    // clang-format on
 			};
 		}
@@ -234,6 +237,7 @@ private:
 		DeviceAsyncArray<Field<RADIAL_SPEED_F32>::type>::Ptr radialSpeed;
 		DeviceAsyncArray<Field<NORMAL_VEC3_F32>::type>::Ptr normal;
 		DeviceAsyncArray<Field<INCIDENT_ANGLE_F32>::type>::Ptr incidentAngle;
+		DeviceAsyncArray<Field<RGBA_U8>::type>::Ptr rgba;
 	};
 
 	IRaysNode::Ptr raysNode;
