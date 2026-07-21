@@ -145,3 +145,68 @@ TEST_F(Ros2PublishPointsNodeTest, should_receive_sent_data)
 		ASSERT_EQ(messageCount.load(), MESSAGE_REPEATS);
 	}
 }
+
+TEST_F(Ros2PublishPointsNodeTest, should_publish_rgba_u8_as_four_uint8_fields)
+{
+	const auto POINT_COUNT = 4;
+	const auto TOPIC_NAME = "rgl_test_pointcloud2_rgba";
+	const auto FRAME_ID = "rgl_test_frame_id";
+	const auto NODE_NAME = "rgl_test_node_rgba";
+	const auto WAIT_TIME_SECS = 1;
+	const auto MESSAGE_REPEATS = 1;
+	const std::vector<rgl_field_t> fields{RGBA_U8};
+	TestPointCloud input(fields, POINT_COUNT);
+
+	rgl_node_t inputNode = input.createUsePointsNode(), pointcloud2Node = nullptr, format = nullptr;
+	ASSERT_RGL_SUCCESS(rgl_node_points_format(&format, fields.data(), fields.size()));
+	ASSERT_RGL_SUCCESS(
+	    rgl_node_points_ros2_publish_with_qos(&pointcloud2Node, TOPIC_NAME, FRAME_ID, QOS_POLICY_RELIABILITY_RELIABLE,
+	                                          QOS_POLICY_DURABILITY_SYSTEM_DEFAULT, QOS_POLICY_HISTORY_SYSTEM_DEFAULT, 0));
+
+	ASSERT_RGL_SUCCESS(rgl_graph_node_add_child(inputNode, format));
+	ASSERT_RGL_SUCCESS(rgl_graph_node_add_child(format, pointcloud2Node));
+
+	std::atomic<int> messageCount = 0;
+
+	auto node = std::make_shared<rclcpp::Node>(NODE_NAME, rclcpp::NodeOptions{});
+	auto qos = rclcpp::QoS(10);
+	qos.reliability(static_cast<rmw_qos_reliability_policy_t>(QOS_POLICY_RELIABILITY_RELIABLE));
+	qos.durability(static_cast<rmw_qos_durability_policy_t>(QOS_POLICY_DURABILITY_SYSTEM_DEFAULT));
+	qos.history(static_cast<rmw_qos_history_policy_t>(QOS_POLICY_HISTORY_SYSTEM_DEFAULT));
+	auto subscriber = node->create_subscription<sensor_msgs::msg::PointCloud2>(
+	    TOPIC_NAME, qos, [&](const sensor_msgs::msg::PointCloud2::ConstSharedPtr msg) {
+		    ASSERT_EQ(msg->fields.size(), 4);
+		    EXPECT_EQ(msg->fields[0].name, "r");
+		    EXPECT_EQ(msg->fields[1].name, "g");
+		    EXPECT_EQ(msg->fields[2].name, "b");
+		    EXPECT_EQ(msg->fields[3].name, "a");
+		    for (const auto& field : msg->fields) {
+			    EXPECT_EQ(field.datatype, sensor_msgs::msg::PointField::UINT8);
+		    }
+
+		    ASSERT_EQ(msg->height * msg->width, POINT_COUNT);
+		    for (int i = 0; i < POINT_COUNT; ++i) {
+			    const auto expected = input.getFieldValue<RGBA_U8>(i);
+			    const uint8_t* point = msg->data.data() + i * msg->point_step;
+			    EXPECT_EQ(point[0], expected.r);
+			    EXPECT_EQ(point[1], expected.g);
+			    EXPECT_EQ(point[2], expected.b);
+			    EXPECT_EQ(point[3], expected.a);
+		    }
+		    messageCount.fetch_add(1);
+	    });
+
+	for (int i = 0; i < MESSAGE_REPEATS; ++i) {
+		ASSERT_RGL_SUCCESS(rgl_graph_run(inputNode));
+	}
+
+	{
+		auto start = std::chrono::steady_clock::now();
+		do {
+			rclcpp::spin_some(node);
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		} while (messageCount.load() != MESSAGE_REPEATS &&
+		         std::chrono::steady_clock::now() - start < std::chrono::seconds(WAIT_TIME_SECS));
+		ASSERT_EQ(messageCount.load(), MESSAGE_REPEATS);
+	}
+}
