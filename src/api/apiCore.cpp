@@ -426,6 +426,26 @@ void TapeCore::tape_entity_set_intensity_texture(const YAML::Node& yamlNode, Pla
 	                                 state.textures.at(yamlNode[1].as<TapeAPIObjectID>()));
 }
 
+RGL_API rgl_status_t rgl_entity_set_color_texture(rgl_entity_t entity, rgl_texture_t texture)
+{
+	auto status = rglSafeCall([&]() {
+		RGL_API_LOG("rgl_entity_set_color_texture(entity={}, texture={})", (void*) entity, (void*) texture);
+		CHECK_ARG(entity != nullptr);
+		CHECK_ARG(texture != nullptr);
+		GraphRunCtx::synchronizeAll(); // Prevent races with graph threads
+		Entity::validatePtr(entity)->setColorTexture(Texture::validatePtr(texture));
+	});
+
+	TAPE_HOOK(entity, texture);
+	return status;
+}
+
+void TapeCore::tape_entity_set_color_texture(const YAML::Node& yamlNode, PlaybackState& state)
+{
+	rgl_entity_set_color_texture(state.entities.at(yamlNode[0].as<TapeAPIObjectID>()),
+	                             state.textures.at(yamlNode[1].as<TapeAPIObjectID>()));
+}
+
 RGL_API rgl_status_t rgl_entity_set_laser_retro(rgl_entity_t entity, float retro)
 {
 	auto status = rglSafeCall([&]() {

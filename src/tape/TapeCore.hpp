@@ -38,6 +38,7 @@ class TapeCore
 	static void tape_entity_set_id(const YAML::Node& yamlNode, PlaybackState& state);
 	static void tape_entity_set_ignored_by_sensor(const YAML::Node& yamlNode, PlaybackState& state);
 	static void tape_entity_set_intensity_texture(const YAML::Node& yamlNode, PlaybackState& state);
+	static void tape_entity_set_color_texture(const YAML::Node& yamlNode, PlaybackState& state);
 	static void tape_entity_set_laser_retro(const YAML::Node& yamlNode, PlaybackState& state);
 	static void tape_entity_apply_external_animation(const YAML::Node& yamlNode, PlaybackState& state);
 	static void tape_scene_set_time(const YAML::Node& yamlNode, PlaybackState& state);
@@ -102,6 +103,7 @@ class TapeCore
 		    TAPE_CALL_MAPPING("rgl_entity_set_id", TapeCore::tape_entity_set_id),
 		    TAPE_CALL_MAPPING("rgl_entity_set_ignored_by_sensor", TapeCore::tape_entity_set_ignored_by_sensor),
 		    TAPE_CALL_MAPPING("rgl_entity_set_intensity_texture", TapeCore::tape_entity_set_intensity_texture),
+		    TAPE_CALL_MAPPING("rgl_entity_set_color_texture", TapeCore::tape_entity_set_color_texture),
 		    TAPE_CALL_MAPPING("rgl_entity_set_laser_retro", TapeCore::tape_entity_set_laser_retro),
 		    TAPE_CALL_MAPPING("rgl_entity_apply_external_animation", TapeCore::tape_entity_apply_external_animation),
 		    TAPE_CALL_MAPPING("rgl_scene_set_time", TapeCore::tape_scene_set_time),

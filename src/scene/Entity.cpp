@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <scene/Entity.hpp>
+#include <scene/Texture.hpp>
 
 API_OBJECT_INSTANCE(Entity);
 
@@ -65,7 +66,20 @@ void Entity::setLaserRetro(float retro)
 
 void Entity::setIntensityTexture(std::shared_ptr<Texture> texture)
 {
+	if (texture->getKind() != TextureKind::GRAYSCALE) {
+		throw std::invalid_argument(
+		    "intensity texture must be created via rgl_texture_create (grayscale), not rgl_texture_create_rgb");
+	}
 	intensityTexture = texture;
+	Scene::instance().requestSBTRebuild();
+}
+
+void Entity::setColorTexture(std::shared_ptr<Texture> texture)
+{
+	if (texture->getKind() != TextureKind::RGB) {
+		throw std::invalid_argument("color texture must be created via rgl_texture_create_rgb, not rgl_texture_create");
+	}
+	colorTexture = texture;
 	Scene::instance().requestSBTRebuild();
 }
 
