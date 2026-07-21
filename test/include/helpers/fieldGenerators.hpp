@@ -111,3 +111,7 @@ static std::function<Field<IS_GROUND_I32>::type(int)> genAllNonGround = [](int i
 static std::function<Field<IS_GROUND_I32>::type(int)> genRandGround = [](int i) {
 	return std::uniform_int_distribution<int>(0, 1)(randomGenerator);
 };
+static std::function<Field<RGBA_U8>::type(int)> genRGBA = [](int i) {
+	return Field<RGBA_U8>::type{static_cast<uint8_t>(i % 256), static_cast<uint8_t>((i * 2) % 256),
+	                            static_cast<uint8_t>((i * 3) % 256), static_cast<uint8_t>(255)};
+};
