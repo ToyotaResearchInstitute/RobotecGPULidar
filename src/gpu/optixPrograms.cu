@@ -192,10 +192,10 @@ extern "C" __global__ void __closesthit__()
 	}
 	intensity *= cosIncidentAngle;
 
-	Field<RGBA_U8>::type rgba{0, 0, 0, 0}; // default: no color data (alpha 0)
+	Field<RGBA_U8>::type rgba{0, 0, 0, 0}; // Default: no color data (alpha 0)
 	if (hasUV && entityData.colorTexture != 0) {
 		uchar4 s = tex2D<uchar4>(entityData.colorTexture, uv[0], uv[1]);
-		rgba = {s.x, s.y, s.z, 255}; // alpha = validity flag (255 = sampled), NOT s.w (texture's padding alpha)
+		rgba = {s.x, s.y, s.z, 255}; // Alpha is a validity flag (255 = sampled), NOT s.w (texture's padding alpha)
 	}
 
 	Vec3f absPointVelocity{NAN};

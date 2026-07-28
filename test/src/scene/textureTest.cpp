@@ -59,17 +59,19 @@ TEST_F(TextureTest, rgl_texture_create_rgb_invalid_argument)
 	EXPECT_RGL_INVALID_ARGUMENT(rgl_texture_create_rgb(&texture, textureRawData.data(), 100, 0), "height > 0");
 }
 
+/**
+ * Regression test for Texture::cleanup() reading uninitialized dTextureObject/dPixelArray when
+ * createTextureObject() fails partway through (e.g. cudaMallocArray under memory pressure).
+ * Width is chosen to exceed CUDA's max 2D texture dimension on any supported GPU, forcing that failure;
+ * height is kept at 1 so the host-side texel buffer stays small.
+ *
+ * Run in a forked child, like ExternalLibraryTest.RclcppInitializeAndShutDownProperly, because
+ * RGL_INTERNAL_EXCEPTION is unrecoverable by design (see canContinueAfterStatus in apiCommon.cpp).
+ * It would otherwise poison every later test sharing this process, including this fixture's own
+ * rgl_cleanup() teardown check.
+ */
 TEST_F(TextureTest, rgl_texture_create_rgb_reports_cuda_failure_without_crashing)
 {
-	// Width chosen to exceed CUDA's max 2D texture dimension on any supported GPU (height kept at 1 so the
-	// host-side texel buffer stays small), forcing cudaMallocArray to fail partway through Texture construction.
-	// Regression test for Texture::cleanup() reading uninitialized dTextureObject/dPixelArray on this path
-	// when construction fails before they are assigned.
-	//
-	// Run in a forked child (like ExternalLibraryTest.RclcppInitializeAndShutDownProperly) because a CUDA
-	// failure reported as RGL_INTERNAL_EXCEPTION is unrecoverable by design (see canContinueAfterStatus in
-	// apiCommon.cpp) - it would otherwise poison every later test sharing this process, including this
-	// fixture's own rgl_cleanup() teardown check.
 	::testing::GTEST_FLAG(death_test_style) = "threadsafe";
 	ASSERT_EXIT(
 	    {
