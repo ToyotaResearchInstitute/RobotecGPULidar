@@ -57,6 +57,23 @@ TEST_F(TextureTest, rgl_texture_create_rgb_invalid_argument)
 	EXPECT_RGL_INVALID_ARGUMENT(rgl_texture_create_rgb(&texture, textureRawData.data(), 100, 0), "height > 0");
 }
 
+TEST_F(TextureTest, rgl_texture_create_rgb_reports_cuda_failure_without_crashing)
+{
+	// Width chosen to exceed CUDA's max 2D texture dimension on any supported GPU (height kept at 1 so the
+	// host-side texel buffer stays small), forcing cudaMallocArray to fail partway through Texture construction.
+	// Regression test for Texture::cleanup() reading uninitialized dTextureObject/dPixelArray on this path
+	// when construction fails before they are assigned.
+	constexpr int32_t width = 1 << 20;
+	constexpr int32_t height = 1;
+	auto textureRawData = generateStaticColorTextureRGB(width, height, 10, 20, 30);
+
+	rgl_texture_t texture = nullptr;
+	rgl_status_t status = rgl_texture_create_rgb(&texture, textureRawData.data(), width, height);
+
+	EXPECT_RGL_STATUS(status, RGL_INTERNAL_EXCEPTION, "cuda error");
+	EXPECT_EQ(texture, nullptr);
+}
+
 TEST_F(TextureTest, rgl_texture_create_rgb_succeeds)
 {
 	rgl_texture_t texture = nullptr;
