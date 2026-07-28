@@ -55,6 +55,8 @@ private:
 	Vec2i resolution{-1};
 	TextureKind kind{TextureKind::GRAYSCALE};
 
-	cudaTextureObject_t dTextureObject;
-	cudaArray_t dPixelArray;
+	// Zero-initialized so that cleanup() is safe to call even if createTextureObject() throws
+	// before these are assigned (e.g. cudaMallocArray failing under GPU memory pressure).
+	cudaTextureObject_t dTextureObject{0};
+	cudaArray_t dPixelArray{nullptr};
 };
