@@ -1,3 +1,5 @@
+#include <gtest/gtest-death-test.h>
+
 #include <helpers/geometryData.hpp>
 #include <helpers/lidarHelpers.hpp>
 #include <helpers/sceneHelpers.hpp>
@@ -63,15 +65,26 @@ TEST_F(TextureTest, rgl_texture_create_rgb_reports_cuda_failure_without_crashing
 	// host-side texel buffer stays small), forcing cudaMallocArray to fail partway through Texture construction.
 	// Regression test for Texture::cleanup() reading uninitialized dTextureObject/dPixelArray on this path
 	// when construction fails before they are assigned.
-	constexpr int32_t width = 1 << 20;
-	constexpr int32_t height = 1;
-	auto textureRawData = generateStaticColorTextureRGB(width, height, 10, 20, 30);
+	//
+	// Run in a forked child (like ExternalLibraryTest.RclcppInitializeAndShutDownProperly) because a CUDA
+	// failure reported as RGL_INTERNAL_EXCEPTION is unrecoverable by design (see canContinueAfterStatus in
+	// apiCommon.cpp) - it would otherwise poison every later test sharing this process, including this
+	// fixture's own rgl_cleanup() teardown check.
+	::testing::GTEST_FLAG(death_test_style) = "threadsafe";
+	ASSERT_EXIT(
+	    {
+		    constexpr int32_t width = 1 << 20;
+		    constexpr int32_t height = 1;
+		    auto textureRawData = generateStaticColorTextureRGB(width, height, 10, 20, 30);
 
-	rgl_texture_t texture = nullptr;
-	rgl_status_t status = rgl_texture_create_rgb(&texture, textureRawData.data(), width, height);
+		    rgl_texture_t texture = nullptr;
+		    rgl_status_t status = rgl_texture_create_rgb(&texture, textureRawData.data(), width, height);
 
-	EXPECT_RGL_STATUS(status, RGL_INTERNAL_EXCEPTION, "cuda error");
-	EXPECT_EQ(texture, nullptr);
+		    exit(status == RGL_INTERNAL_EXCEPTION && texture == nullptr ? 0 : 1);
+	    },
+	    ::testing::ExitedWithCode(0), "")
+	    << "Expected rgl_texture_create_rgb to fail cleanly with RGL_INTERNAL_EXCEPTION when its CUDA "
+	       "allocation fails, not crash the process.";
 }
 
 TEST_F(TextureTest, rgl_texture_create_rgb_succeeds)
