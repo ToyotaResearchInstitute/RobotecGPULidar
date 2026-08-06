@@ -74,8 +74,7 @@ if ((NOT WIN32))
 endif()
 
 # On Windows, tape is not available since it uses Linux sys-calls (mmap)
-# AutoTape interferes with tape tests (e.g. double rgl_tape_record_begin()) which is non-trivial to fix.
-if ((NOT WIN32) AND (NOT RGL_AUTO_TAPE_PATH))
+if (NOT WIN32)
     list(APPEND RGL_TEST_FILES
             src/TapeTest.cpp
     )

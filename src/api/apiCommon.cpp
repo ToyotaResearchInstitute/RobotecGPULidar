@@ -12,12 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstdlib>
+
 #include <api/apiCommon.hpp>
 
 rgl_status_t lastStatusCode = RGL_SUCCESS;
 std::optional<std::string> lastStatusString = std::nullopt;
 
-static bool isCompiledWithAutoTape() { return !std::string(RGL_AUTO_TAPE_PATH).empty(); }
+static std::optional<std::string> getAutoTapePathFromEnv()
+{
+	const char* path = std::getenv("RGL_AUTO_TAPE_PATH");
+	if (path == nullptr || std::string(path).empty()) {
+		return std::nullopt;
+	}
+	return std::string(path);
+}
 
 const char* getLastErrorString() noexcept
 {
@@ -77,8 +86,8 @@ void rglLazyInit()
 	rgl_status_t initStatus = rglSafeCall([&]() {
 		Logger::getOrCreate();
 		Optix::getOrCreate();
-		if (isCompiledWithAutoTape()) {
-			auto path = std::filesystem::path(RGL_AUTO_TAPE_PATH);
+		if (auto autoTapePath = getAutoTapePathFromEnv(); autoTapePath.has_value()) {
+			auto path = std::filesystem::path(*autoTapePath);
 			RGL_INFO("Starting RGL Auto Tape on path '{}'", path.string());
 			tapeRecorder.emplace(path);
 		}
