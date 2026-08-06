@@ -485,7 +485,9 @@ RGL_API rgl_status_t rgl_texture_create(rgl_texture_t* out_texture, const void* 
 		GraphRunCtx::synchronizeAll(); // Prevent races with graph threads
 		*out_texture = Texture::create(texels, width, height).get();
 	});
-	TAPE_HOOK(out_texture, TAPE_ARRAY(texels, (width * height * sizeof(TextureTexelFormat))), width, height);
+	TAPE_HOOK(out_texture,
+	          TAPE_ARRAY(texels, (width > 0 && height > 0) ? (width * height * sizeof(TextureTexelFormat)) : 0), width,
+	          height);
 	return status;
 }
 

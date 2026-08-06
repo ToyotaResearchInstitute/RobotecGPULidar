@@ -163,6 +163,19 @@ TEST_F(TapeTest, RecordPlayLoggingCall)
 	EXPECT_RGL_SUCCESS(rgl_tape_play(loggingRecordPath.c_str()));
 }
 
+TEST_F(TapeTest, RecordPlayLoggingCallWithNullPath)
+{
+	std::string loggingRecordPath{
+	    (std::filesystem::temp_directory_path() / std::filesystem::path("loggingRecordNullPath")).string()};
+
+	// A null log file path (e.g. "disable file logging") must not crash the recorder.
+	ASSERT_RGL_SUCCESS(rgl_tape_record_begin(loggingRecordPath.c_str()));
+	EXPECT_RGL_SUCCESS(rgl_configure_logging(RGL_LOG_LEVEL_OFF, nullptr, false));
+	EXPECT_RGL_SUCCESS(rgl_tape_record_end());
+
+	EXPECT_RGL_SUCCESS(rgl_tape_play(loggingRecordPath.c_str()));
+}
+
 TEST_F(TapeTest, RecordPlayAllCalls)
 {
 	std::string allCallsRecordPath{(std::filesystem::temp_directory_path() / std::filesystem::path("allCallsRecord")).string()};
