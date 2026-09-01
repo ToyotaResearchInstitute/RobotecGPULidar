@@ -27,8 +27,8 @@ set(RGL_LOG_LEVEL INFO CACHE STRING
     "Specifies minimal severity of log message to be printed (TRACE, DEBUG, INFO, WARN, ERROR, CRITICAL, OFF)")
 set(RGL_LOG_FILE "" CACHE STRING  # STRING prevents from expanding relative paths
     "Defines a file path to store RGL log")
-set(RGL_AUTO_TAPE_PATH "" CACHE STRING  # STRING prevents from expanding relative paths
-    "If non-empty, defines a path for the automatic tape (started on the first API call)")
+# Note: automatic tape is controlled at runtime via the RGL_AUTO_TAPE_PATH environment
+# variable (started on the first API call), not a build-time option.
 
 # Library configuration
 set(RGL_BUILD_STATIC OFF CACHE BOOL
@@ -222,7 +222,7 @@ if (NOT ("RGL_LOG_LEVEL_${RGL_LOG_LEVEL}" IN_LIST RGL_AVAILABLE_LOG_LEVELS))
     message(FATAL_ERROR "Incorrect RGL_LOG_LEVEL value: ${RGL_LOG_LEVEL}")
 endif()
 
-if (WIN32 AND (RGL_AUTO_TAPE_PATH OR RGL_BUILD_TAPED_TESTS))
+if (WIN32 AND RGL_BUILD_TAPED_TESTS)
     message(FATAL_ERROR "(Auto)Tape not supported on Windows")
 endif()
 
@@ -231,7 +231,6 @@ target_compile_definitions(RobotecGPULidar
     PUBLIC RGL_LOG_STDOUT=$<BOOL:${RGL_LOG_STDOUT}>
     PUBLIC RGL_LOG_FILE="${RGL_LOG_FILE}"
     PUBLIC RGL_LOG_LEVEL=RGL_LOG_LEVEL_${RGL_LOG_LEVEL}
-    PUBLIC RGL_AUTO_TAPE_PATH="${RGL_AUTO_TAPE_PATH}"
     PRIVATE RGL_BUILD # Used in headers to differentiate whether it is parsed as library or client's code, affects __declspec on Windows.
 )
 

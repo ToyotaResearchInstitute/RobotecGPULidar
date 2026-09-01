@@ -83,16 +83,17 @@ private: // Methods
 	YAML::EMITTER_MANIP emitArgs() { return YAML::Auto; }
 
 	uintptr_t valueToYaml(void* value) { return (uintptr_t) value; }
-	uintptr_t valueToYaml(rgl_node_t* value) { return (uintptr_t) *value; }
+	uintptr_t valueToYaml(rgl_node_t* value) { return value != nullptr ? (uintptr_t) *value : 0; }
 	uintptr_t valueToYaml(rgl_node_t value) { return (uintptr_t) value; }
-	uintptr_t valueToYaml(rgl_mesh_t* value) { return (uintptr_t) *value; }
+	uintptr_t valueToYaml(rgl_mesh_t* value) { return value != nullptr ? (uintptr_t) *value : 0; }
 	uintptr_t valueToYaml(rgl_mesh_t value) { return (uintptr_t) value; }
-	uintptr_t valueToYaml(rgl_scene_t* value) { return (uintptr_t) *value; }
+	uintptr_t valueToYaml(rgl_scene_t* value) { return value != nullptr ? (uintptr_t) *value : 0; }
 	uintptr_t valueToYaml(rgl_scene_t value) { return (uintptr_t) value; }
-	uintptr_t valueToYaml(rgl_entity_t* value) { return (uintptr_t) *value; }
+	uintptr_t valueToYaml(rgl_entity_t* value) { return value != nullptr ? (uintptr_t) *value : 0; }
 	uintptr_t valueToYaml(rgl_entity_t value) { return (uintptr_t) value; }
-	uintptr_t valueToYaml(rgl_texture_t* value) { return (uintptr_t) *value; }
+	uintptr_t valueToYaml(rgl_texture_t* value) { return value != nullptr ? (uintptr_t) *value : 0; }
 	uintptr_t valueToYaml(rgl_texture_t value) { return (uintptr_t) value; }
+	std::string valueToYaml(const char* value) { return value != nullptr ? std::string(value) : std::string(); }
 	size_t valueToYaml(const rgl_vec3f* value) { return writeToBin(value, 1); }
 	size_t valueToYaml(const rgl_mat3x4f* value) { return writeToBin(value, 1); }
 
@@ -120,11 +121,14 @@ private: // Methods
 		return std::to_string(static_cast<std::underlying_type_t<T>>(value));
 	}
 
-	int valueToYaml(int32_t* value) { return *value; }
+	int valueToYaml(int32_t* value) { return value != nullptr ? *value : 0; }
 
 	template<typename T>
 	size_t writeToBin(const T* source, size_t elemCount)
 	{
+		if (source == nullptr || elemCount == 0) {
+			return currentBinOffset;
+		}
 		size_t elemSize = sizeof(T);
 		uint8_t remainder = (elemSize * elemCount) % 16;
 		uint8_t bytesToAdd = (16 - remainder) % 16;
