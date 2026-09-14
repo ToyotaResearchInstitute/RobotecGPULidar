@@ -32,10 +32,10 @@ void Texture::createTextureObject(const void* texels, int width, int height)
 {
 	cudaResourceDesc res_desc = {};
 
-	cudaChannelFormatDesc channel_desc;
+	cudaChannelFormatDesc channel_desc = {};
 	const void* uploadTexels = texels;
 	std::vector<uchar4> paddedRgba; // Kept alive until cudaMemcpy2DToArray below
-	int32_t pitch;
+	int32_t pitch = 0;
 
 	if (kind == TextureKind::GRAYSCALE) {
 		channel_desc = cudaCreateChannelDesc<TextureTexelFormat>();

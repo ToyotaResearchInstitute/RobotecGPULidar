@@ -34,9 +34,9 @@ TEST_F(RGLFieldsTest, rgba_u8_round_trips_through_points_from_array_and_format)
 	auto outValues = outPointCloud.getFieldValues<RGBA_U8>();
 	ASSERT_EQ(outValues.size(), values.size());
 	for (size_t i = 0; i < values.size(); ++i) {
-		EXPECT_EQ(outValues[i].r, values[i].r);
-		EXPECT_EQ(outValues[i].g, values[i].g);
-		EXPECT_EQ(outValues[i].b, values[i].b);
-		EXPECT_EQ(outValues[i].a, values[i].a);
+		EXPECT_EQ(outValues[i].channels.r, values[i].channels.r);
+		EXPECT_EQ(outValues[i].channels.g, values[i].channels.g);
+		EXPECT_EQ(outValues[i].channels.b, values[i].channels.b);
+		EXPECT_EQ(outValues[i].channels.a, values[i].channels.a);
 	}
 }
