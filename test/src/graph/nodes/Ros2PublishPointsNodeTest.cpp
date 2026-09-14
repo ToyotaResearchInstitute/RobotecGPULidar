@@ -146,7 +146,7 @@ TEST_F(Ros2PublishPointsNodeTest, should_receive_sent_data)
 	}
 }
 
-TEST_F(Ros2PublishPointsNodeTest, should_publish_rgba_u8_as_four_uint8_fields)
+TEST_F(Ros2PublishPointsNodeTest, should_publish_rgba_u8_as_packed_rgb_float32)
 {
 	const auto POINT_COUNT = 4;
 	const auto TOPIC_NAME = "rgl_test_pointcloud2_rgba";
@@ -175,23 +175,19 @@ TEST_F(Ros2PublishPointsNodeTest, should_publish_rgba_u8_as_four_uint8_fields)
 	qos.history(static_cast<rmw_qos_history_policy_t>(QOS_POLICY_HISTORY_SYSTEM_DEFAULT));
 	auto subscriber = node->create_subscription<sensor_msgs::msg::PointCloud2>(
 	    TOPIC_NAME, qos, [&](const sensor_msgs::msg::PointCloud2::ConstSharedPtr msg) {
-		    ASSERT_EQ(msg->fields.size(), 4);
-		    EXPECT_EQ(msg->fields[0].name, "r");
-		    EXPECT_EQ(msg->fields[1].name, "g");
-		    EXPECT_EQ(msg->fields[2].name, "b");
-		    EXPECT_EQ(msg->fields[3].name, "a");
-		    for (const auto& field : msg->fields) {
-			    EXPECT_EQ(field.datatype, sensor_msgs::msg::PointField::UINT8);
-		    }
+		    ASSERT_EQ(msg->fields.size(), 1);
+		    EXPECT_EQ(msg->fields[0].name, "rgb");
+		    EXPECT_EQ(msg->fields[0].datatype, sensor_msgs::msg::PointField::FLOAT32);
 
 		    ASSERT_EQ(msg->height * msg->width, POINT_COUNT);
 		    for (int i = 0; i < POINT_COUNT; ++i) {
 			    const auto expected = input.getFieldValue<RGBA_U8>(i);
 			    const uint8_t* point = msg->data.data() + i * msg->point_step;
-			    EXPECT_EQ(point[0], expected.r);
-			    EXPECT_EQ(point[1], expected.g);
-			    EXPECT_EQ(point[2], expected.b);
-			    EXPECT_EQ(point[3], expected.a);
+			    // Packed "rgb" convention: byte order b,g,r,0 (alpha dropped).
+			    EXPECT_EQ(point[0], expected.channels.b);
+			    EXPECT_EQ(point[1], expected.channels.g);
+			    EXPECT_EQ(point[2], expected.channels.r);
+			    EXPECT_EQ(point[3], 0);
 		    }
 		    messageCount.fetch_add(1);
 	    });
