@@ -282,10 +282,10 @@ TEST_P(TextureTest, rgl_color_texture_reading)
 	EXPECT_RGL_SUCCESS(rgl_graph_get_result_data(yieldNode, RGBA_U8, outColor.data()));
 
 	for (int i = 0; i < outCount; ++i) {
-		EXPECT_EQ(outColor.at(i).r, r);
-		EXPECT_EQ(outColor.at(i).g, g);
-		EXPECT_EQ(outColor.at(i).b, b);
-		EXPECT_EQ(outColor.at(i).a, 255);
+		EXPECT_EQ(outColor.at(i).channels.r, r);
+		EXPECT_EQ(outColor.at(i).channels.g, g);
+		EXPECT_EQ(outColor.at(i).channels.b, b);
+		EXPECT_EQ(outColor.at(i).channels.a, 255);
 	}
 }
 
@@ -347,10 +347,10 @@ TEST_F(TextureTest, rgl_intensity_and_color_texture_independent_simultaneous_rea
 	ASSERT_EQ(outIntensityCount, outColorCount);
 	for (int i = 0; i < outIntensityCount; ++i) {
 		EXPECT_NEAR(((float) intensityValue), outIntensity.at(i), EPSILON_F);
-		EXPECT_EQ(outColor.at(i).r, r);
-		EXPECT_EQ(outColor.at(i).g, g);
-		EXPECT_EQ(outColor.at(i).b, b);
-		EXPECT_EQ(outColor.at(i).a, 255);
+		EXPECT_EQ(outColor.at(i).channels.r, r);
+		EXPECT_EQ(outColor.at(i).channels.g, g);
+		EXPECT_EQ(outColor.at(i).channels.b, b);
+		EXPECT_EQ(outColor.at(i).channels.a, 255);
 	}
 }
 
@@ -408,10 +408,10 @@ TEST_F(TextureTest, rgl_color_texture_no_texture_assigned_fallback)
 
 	ASSERT_GT(outCount, 0);
 	for (int i = 0; i < outCount; ++i) {
-		EXPECT_EQ(outColor.at(i).r, 0);
-		EXPECT_EQ(outColor.at(i).g, 0);
-		EXPECT_EQ(outColor.at(i).b, 0);
-		EXPECT_EQ(outColor.at(i).a, 0);
+		EXPECT_EQ(outColor.at(i).channels.r, 0);
+		EXPECT_EQ(outColor.at(i).channels.g, 0);
+		EXPECT_EQ(outColor.at(i).channels.b, 0);
+		EXPECT_EQ(outColor.at(i).channels.a, 0);
 	}
 }
 
@@ -454,14 +454,14 @@ TEST_F(TextureTest, rgl_color_texture_validity_flag_mixed_entities)
 	EXPECT_RGL_SUCCESS(rgl_graph_get_result_data(yieldNode, RGBA_U8, outColor.data()));
 
 	// First ray hits the textured cube: valid color.
-	EXPECT_EQ(outColor.at(0).a, 255);
-	EXPECT_EQ(outColor.at(0).r, 200);
-	EXPECT_EQ(outColor.at(0).g, 100);
-	EXPECT_EQ(outColor.at(0).b, 50);
+	EXPECT_EQ(outColor.at(0).channels.a, 255);
+	EXPECT_EQ(outColor.at(0).channels.r, 200);
+	EXPECT_EQ(outColor.at(0).channels.g, 100);
+	EXPECT_EQ(outColor.at(0).channels.b, 50);
 
 	// Second ray hits the untextured cube: no color data.
-	EXPECT_EQ(outColor.at(1).a, 0);
-	EXPECT_EQ(outColor.at(1).r, 0);
-	EXPECT_EQ(outColor.at(1).g, 0);
-	EXPECT_EQ(outColor.at(1).b, 0);
+	EXPECT_EQ(outColor.at(1).channels.a, 0);
+	EXPECT_EQ(outColor.at(1).channels.r, 0);
+	EXPECT_EQ(outColor.at(1).channels.g, 0);
+	EXPECT_EQ(outColor.at(1).channels.b, 0);
 }

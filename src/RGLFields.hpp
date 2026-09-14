@@ -69,8 +69,21 @@ typedef unsigned char TextureTexelFormat;
 // See RGL_FIELD_RGBA_U8 in core.h.
 struct RGBA8
 {
-	uint8_t r, g, b, a;
+	struct Channels
+	{
+		uint8_t r = 0x00;
+		uint8_t g = 0x00;
+		uint8_t b = 0x00;
+		uint8_t a = 0x00;
+	};
+
+	union
+	{
+		Channels channels;
+		uint32_t bits;
+	};
 };
+static_assert(sizeof(RGBA8) == sizeof(uint32_t));
 static_assert(std::is_trivially_copyable_v<RGBA8>);
 static_assert(std::is_standard_layout_v<RGBA8>);
 
