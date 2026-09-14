@@ -219,6 +219,11 @@ TEST_F(TapeTest, RecordPlayAllCalls)
 	EXPECT_RGL_SUCCESS(rgl_mesh_set_texture_coords(mesh, cubeUVs, 8));
 	EXPECT_RGL_SUCCESS(rgl_entity_set_intensity_texture(entity, texture));
 
+	rgl_texture_t colorTexture = nullptr;
+	auto colorTextureRawData = generateStaticColorTextureRGB(64, 32, 10, 20, 30);
+	EXPECT_RGL_SUCCESS(rgl_texture_create_rgb(&colorTexture, colorTextureRawData.data(), 64, 32));
+	EXPECT_RGL_SUCCESS(rgl_entity_set_color_texture(entity, colorTexture));
+
 	EXPECT_RGL_SUCCESS(rgl_entity_set_laser_retro(entity, 50.0f));
 
 	EXPECT_RGL_SUCCESS(rgl_scene_set_time(nullptr, 1.5 * 1e9));
@@ -379,6 +384,7 @@ TEST_F(TapeTest, RecordPlayAllCalls)
 	EXPECT_RGL_SUCCESS(rgl_graph_destroy(setRingIds));
 	EXPECT_RGL_SUCCESS(rgl_entity_destroy(entity));
 	EXPECT_RGL_SUCCESS(rgl_mesh_destroy(mesh));
+	EXPECT_RGL_SUCCESS(rgl_texture_destroy(colorTexture));
 	EXPECT_RGL_SUCCESS(rgl_texture_destroy(texture));
 
 	EXPECT_RGL_SUCCESS(rgl_cleanup());

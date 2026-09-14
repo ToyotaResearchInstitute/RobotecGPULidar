@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstdint>
+#include <utility>
+
 #include <graph/NodesRos2.hpp>
 #include <scene/Scene.hpp>
 #include <RGLFields.hpp>
@@ -46,7 +49,7 @@ void Ros2PublishPointsNode::ros2EnqueueExecImpl()
 {
 	auto& ros2Message = messagePublisher->getMessage();
 
-	updateRos2MessageFields(ros2Message, input->getRequiredFieldList());
+	const std::vector<size_t> colorFieldOffsets = updateRos2MessageFields(ros2Message, input->getRequiredFieldList());
 
 	auto fieldData = input->getFieldData(RGL_FIELD_DYNAMIC_FORMAT)->asTyped<char>()->asSubclass<HostArray>();
 	int count = input->getPointCount();
@@ -55,6 +58,16 @@ void Ros2PublishPointsNode::ros2EnqueueExecImpl()
 	size_t size = fieldData->getCount() * fieldData->getSizeOf();
 	CHECK_CUDA(cudaMemcpyAsync(ros2Message.data.data(), src, size, cudaMemcpyDefault, getStreamHandle()));
 	CHECK_CUDA(cudaStreamSynchronize(getStreamHandle()));
+
+	// RGBA8 is stored as raw {r,g,b,a} bytes; repack in-place to the packed "rgb" convention
+	// (byte order b,g,r,0) that updateRos2MessageFields advertised for these offsets.
+	for (size_t offset : colorFieldOffsets) {
+		for (int p = 0; p < count; ++p) {
+			uint8_t* px = ros2Message.data.data() + p * ros2Message.point_step + offset;
+			std::swap(px[0], px[2]);
+			px[3] = 0;
+		}
+	}
 
 	ros2Message.height = 1;
 	ros2Message.width = count;
@@ -72,15 +85,20 @@ void Ros2PublishPointsNode::ros2EnqueueExecImpl()
 }
 
 
-void Ros2PublishPointsNode::updateRos2MessageFields(sensor_msgs::msg::PointCloud2& ros2Message,
-                                                    const std::vector<rgl_field_t>& fields)
+std::vector<size_t> Ros2PublishPointsNode::updateRos2MessageFields(sensor_msgs::msg::PointCloud2& ros2Message,
+                                                                   const std::vector<rgl_field_t>& fields)
 {
 	ros2Message.fields.clear();
+	std::vector<size_t> colorFieldOffsets;
 	size_t offset = 0;
 	for (const auto& field : fields) {
 		auto ros2fields = toRos2Fields(field);
 		auto ros2names = toRos2Names(field);
 		auto ros2sizes = toRos2Sizes(field);
+
+		if (field == RGBA_U8) {
+			colorFieldOffsets.push_back(offset);
+		}
 
 		for (int i = 0; i < ros2sizes.size(); ++i) {
 			if (ros2fields.size() > i && ros2names.size() > i) {
@@ -97,6 +115,7 @@ void Ros2PublishPointsNode::updateRos2MessageFields(sensor_msgs::msg::PointCloud
 		}
 	}
 	ros2Message.point_step = offset;
+	return colorFieldOffsets;
 }
 
 #if RGL_BUILD_AGNOCAST_EXTENSION
