@@ -77,9 +77,12 @@ struct RGBA8
 		uint8_t a = 0x00;
 	};
 
+	// The NSDMI on `channels` (rather than on Channels's own members) is required so that
+	// RGBA8's default constructor is well-formed instead of implicitly deleted; see the
+	// std::vector<RGBA8> default-construction pattern used in textureTest.cpp.
 	union
 	{
-		Channels channels;
+		Channels channels{};
 		uint32_t bits;
 	};
 };
@@ -358,9 +361,8 @@ inline std::vector<uint8_t> toRos2Fields(rgl_field_t type)
 			    sensor_msgs::msg::PointField::FLOAT32, sensor_msgs::msg::PointField::FLOAT32,
 			    sensor_msgs::msg::PointField::FLOAT32, sensor_msgs::msg::PointField::FLOAT32,
 			};
-		case RGBA_U8:
-			return {sensor_msgs::msg::PointField::UINT8, sensor_msgs::msg::PointField::UINT8,
-			        sensor_msgs::msg::PointField::UINT8, sensor_msgs::msg::PointField::UINT8};
+		// RGBA_U8 is published as a single packed float, see toRos2Names.
+		case RGBA_U8: return {sensor_msgs::msg::PointField::FLOAT32};
 		case PADDING_8: return {};
 		case PADDING_16: return {};
 		case PADDING_32: return {};
@@ -400,7 +402,9 @@ inline std::vector<std::string> toRos2Names(rgl_field_t type)
 		case NORMAL_VEC3_F32: return {"nx", "ny", "nz"};
 		case INCIDENT_ANGLE_F32: return {"incident_angle"};
 		case RAY_POSE_MAT3x4_F32: return {"m00", "m01", "m02", "m03", "m10", "m11", "m12", "m13", "m20", "m21", "m22", "m23"};
-		case RGBA_U8: return {"r", "g", "b", "a"};
+		// Packed single-float "rgb" per the PCL/ROS convention, not per-channel; see
+		// Ros2PublishPointsNode::ros2EnqueueExecImpl for the byte repacking this implies.
+		case RGBA_U8: return {"rgb"};
 		case PADDING_8: return {};
 		case PADDING_16: return {};
 		case PADDING_32: return {};
@@ -422,7 +426,7 @@ inline std::vector<std::size_t> toRos2Sizes(rgl_field_t type)
 			    sizeof(float), sizeof(float), sizeof(float), sizeof(float), sizeof(float), sizeof(float),
 			    sizeof(float), sizeof(float), sizeof(float), sizeof(float), sizeof(float), sizeof(float),
 			};
-		case RGBA_U8: return {sizeof(uint8_t), sizeof(uint8_t), sizeof(uint8_t), sizeof(uint8_t)};
+		case RGBA_U8: return {sizeof(float)};
 		default: return {getFieldSize(type)};
 	}
 }
