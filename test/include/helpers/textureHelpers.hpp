@@ -45,12 +45,12 @@ static std::vector<T> generateCheckerboardTexture(int width, int height)
 static std::vector<uint8_t> generateStaticColorTextureRGB(int width, int height, uint8_t r, uint8_t g, uint8_t b)
 {
 	const size_t numTexels = static_cast<size_t>(width) * height;
-	constexpr size_t kNumChannels = 3;
-	auto texels = std::vector<uint8_t>(numTexels * kNumChannels);
+	constexpr size_t NUM_CHANNELS = 3;
+	auto texels = std::vector<uint8_t>(numTexels * NUM_CHANNELS);
 	for (size_t i = 0; i < numTexels; ++i) {
-		texels[i * kNumChannels + 0] = r;
-		texels[i * kNumChannels + 1] = g;
-		texels[i * kNumChannels + 2] = b;
+		texels[i * NUM_CHANNELS + 0] = r;
+		texels[i * NUM_CHANNELS + 1] = g;
+		texels[i * NUM_CHANNELS + 2] = b;
 	}
 	return texels;
 }
