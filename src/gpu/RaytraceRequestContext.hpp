@@ -72,6 +72,7 @@ struct RaytraceRequestContext
 	Field<ELEVATION_F32>::type* elevation;
 	Field<NORMAL_VEC3_F32>::type* normal;
 	Field<INCIDENT_ANGLE_F32>::type* incidentAngle;
+	Field<RGBA_U8>::type* rgba;
 
 	// Multi-Return
 	MultiReturnSamplesPointers mrSamples;

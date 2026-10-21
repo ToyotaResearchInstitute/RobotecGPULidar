@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.18) # # 3.18 To have DISCOVERY_MODE option for 
 set(RGL_TEST_FILES
     src/apiReadmeExample.cpp
     src/apiGeneralCallsTest.cpp
+    src/RGLFieldsTest.cpp
     src/graph/asyncStressTest.cpp
     src/graph/DistanceFieldTest.cpp
     src/externalLibraryTest.cpp

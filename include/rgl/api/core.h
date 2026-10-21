@@ -451,6 +451,15 @@ typedef enum : int32_t
 	 */
 	RGL_FIELD_REFLECTIVITY_F32,
 
+	/**
+	 * Per-point color, sampled from an RGB texture assigned to the hit Entity (see `rgl_entity_set_color_texture`)
+	 * at the same UV used for intensity sampling. Unlike intensity, this is a raw sample - no incident-angle
+	 * attenuation is applied.
+	 * The alpha channel is NOT transparency. It is a validity flag: 255 if a color texture was sampled for this
+	 * point, 0 if the Entity has no color texture (or no texture coordinates), in which case r=g=b=0 too.
+	 */
+	RGL_FIELD_RGBA_U8,
+
 	// Dummy fields
 	RGL_FIELD_PADDING_8 = 1024,
 	RGL_FIELD_PADDING_16,
@@ -686,10 +695,19 @@ RGL_API rgl_status_t rgl_entity_set_ignored_by_sensor(rgl_entity_t entity, int32
 
 /**
  * Assign intensity texture to the given Entity. The assumption is that the Entity can hold only one intensity texture.
+ * The Texture must have been created via `rgl_texture_create` - passing an RGB texture fails.
  * @param entity Entity to modify.
  * @param texture Texture to assign.
  */
 RGL_API rgl_status_t rgl_entity_set_intensity_texture(rgl_entity_t entity, rgl_texture_t texture);
+
+/**
+ * Assign color texture to the given Entity. The assumption is that the Entity can hold only one color texture.
+ * The Texture must have been created via `rgl_texture_create_rgb` - passing a grayscale texture fails.
+ * @param entity Entity to modify.
+ * @param texture Texture to assign.
+ */
+RGL_API rgl_status_t rgl_entity_set_color_texture(rgl_entity_t entity, rgl_texture_t texture);
 
 /**
  * Set laser retro value for the given Entity.
@@ -730,6 +748,19 @@ RGL_API rgl_status_t rgl_entity_is_alive(rgl_entity_t entity, bool* out_alive);
  * @param height Height of the texture. It is not demanded that width == height. Has to be positive.
  */
 RGL_API rgl_status_t rgl_texture_create(rgl_texture_t* out_texture, const void* texels, int32_t width, int32_t height);
+
+/**
+ * Creates an RGB Texture.
+ * Texture is a container object which holds device pointer to texture resource.
+ * A Texture created with this function can only be assigned via `rgl_entity_set_color_texture` -
+ * assigning it via `rgl_entity_set_intensity_texture` will fail.
+ * @param out_texture Handle to the created Texture.
+ * @param texels Pointer to the texture data: tightly packed RGB, 3 bytes per pixel. Padded to RGBA internally
+ *               (CUDA texture objects do not support 3-component fetch).
+ * @param width Width of the texture. Has to be positive.
+ * @param height Height of the texture. It is not demanded that width == height. Has to be positive.
+ */
+RGL_API rgl_status_t rgl_texture_create_rgb(rgl_texture_t* out_texture, const void* texels, int32_t width, int32_t height);
 
 /**
  * Informs that the given texture will be no longer used.

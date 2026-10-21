@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <math.h>
+#include <RGLFields.hpp>
 
 template<typename T>
 static std::vector<T> generateStaticColorTexture(int width, int height, T value)
@@ -39,4 +40,29 @@ static std::vector<T> generateCheckerboardTexture(int width, int height)
 	}
 
 	return texels;
+}
+
+static std::vector<uint8_t> generateStaticColorTextureRGB(int width, int height, uint8_t r, uint8_t g, uint8_t b)
+{
+	const size_t numTexels = static_cast<size_t>(width) * height;
+	constexpr size_t NUM_CHANNELS = 3;
+	auto texels = std::vector<uint8_t>(numTexels * NUM_CHANNELS);
+	for (size_t i = 0; i < numTexels; ++i) {
+		texels[i * NUM_CHANNELS + 0] = r;
+		texels[i * NUM_CHANNELS + 1] = g;
+		texels[i * NUM_CHANNELS + 2] = b;
+	}
+	return texels;
+}
+
+static std::vector<uint8_t> generateCheckerboardTextureRGB(int width, int height)
+{
+	auto gray = generateCheckerboardTexture<TextureTexelFormat>(width, height);
+	auto rgb = std::vector<uint8_t>(gray.size() * 3);
+	for (size_t i = 0; i < gray.size(); ++i) {
+		rgb[i * 3 + 0] = gray[i];
+		rgb[i * 3 + 1] = gray[i];
+		rgb[i * 3 + 2] = gray[i];
+	}
+	return rgb;
 }

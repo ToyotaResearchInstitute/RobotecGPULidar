@@ -31,6 +31,7 @@
  * - reference to mesh
  * - transform (local-to-world)
  * - (optional) reference to intensity texture
+ * - (optional) reference to color texture
  * - (optional) id (for instance segmentation)
  * - etc.
  */
@@ -62,8 +63,15 @@ struct Entity : APIObject<Entity>
 
 	/**
 	 * Sets intensity texture that will be used as a point attribute INTENSITY_F32 when a ray hits this entity.
+	 * Throws std::invalid_argument if the given Texture was not created via rgl_texture_create (grayscale).
 	 */
 	void setIntensityTexture(std::shared_ptr<Texture> texture);
+
+	/**
+	 * Sets color texture that will be used as a point attribute RGBA_U8 when a ray hits this entity.
+	 * Throws std::invalid_argument if the given Texture was not created via rgl_texture_create_rgb.
+	 */
+	void setColorTexture(std::shared_ptr<Texture> texture);
 
 	/**
 	 * Sets laser retro that will be used as a point attribute LASER_RETRO_F32 when a ray hits this entity.
@@ -139,6 +147,7 @@ private:
 
 	std::shared_ptr<Mesh> mesh{};
 	std::shared_ptr<Texture> intensityTexture{};
+	std::shared_ptr<Texture> colorTexture{};
 
 	std::variant<std::monostate, ExternalAnimator, SkeletonAnimator> animator = std::monostate();
 	std::optional<Time> currentAnimationTime;

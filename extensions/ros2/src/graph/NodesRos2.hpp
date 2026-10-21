@@ -107,7 +107,9 @@ struct Ros2PublishPointsNode : Ros2Node
 private:
 	using MessageT = sensor_msgs::msg::PointCloud2;
 
-	static void updateRos2MessageFields(MessageT& ros2Message, const std::vector<rgl_field_t>& fields);
+	// Returns the message byte offset of each RGBA_U8-sourced field, for the packed-color repacking
+	// step in ros2EnqueueExecImpl.
+	static std::vector<size_t> updateRos2MessageFields(MessageT& ros2Message, const std::vector<rgl_field_t>& fields);
 
 	DeviceAsyncArray<char>::Ptr inputFmtData = DeviceAsyncArray<char>::create(arrayMgr);
 
